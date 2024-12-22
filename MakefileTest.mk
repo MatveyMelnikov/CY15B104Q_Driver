@@ -36,7 +36,9 @@ $(TESTS_DIR)/host_tests.c \
 $(HOST_CY15B104Q_DRIVER_DIR)/cy15b104q_driver_test_runner.c \
 $(HOST_CY15B104Q_DRIVER_DIR)/cy15b104q_driver_test.c \
 $(MOCKS_DIR)/Src/mock.c \
-$(MOCKS_DIR)/Src/mock_spi.c
+$(MOCKS_DIR)/Src/mock_spi.c \
+$(MOCKS_DIR)/Src/mock_delay.c \
+$(MOCKS_DIR)/Src/mock_cs_pin.c
 
 include MakefileTestHost.mk
 endif
