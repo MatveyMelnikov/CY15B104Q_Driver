@@ -1,4 +1,4 @@
-# HC06 driver
+# CY15B104Q driver
 ### Launch
 * ```make -f MakefileMain.mk``` - building a production version of the code (does not contain tests);
 * ```make TESTS=Y FOR_TARGET=Y -f MakefileMain.mk``` - building a test version for target device;
