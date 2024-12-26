@@ -13,14 +13,14 @@ enum {
 // Static variables ----------------------------------------------------------
 
 SPI_HandleTypeDef hspi1;
-UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart3;
 
 // Static functions ----------------------------------------------------------
 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
-static void MX_USART1_UART_Init(void);
+static void MX_USART3_UART_Init(void);
 static void run_all_tests(void);
 
 // Specific functions for tests ----------------------------------------------
@@ -40,7 +40,7 @@ int main(void)
 
   MX_GPIO_Init();
   MX_SPI1_Init();
-  MX_USART1_UART_Init();
+  MX_USART3_UART_Init();
 
   return UnityMain(0, NULL, run_all_tests);
 }
@@ -80,7 +80,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -89,41 +89,37 @@ static void MX_SPI1_Init(void)
     Error_Handler();
 }
 
-static void MX_USART1_UART_Init(void)
+static void MX_USART3_UART_Init(void)
 {
-  huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
-  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-  huart1.Init.StopBits = UART_STOPBITS_1;
-  huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX_RX;
-  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart3.Instance = USART3;
+  huart3.Init.BaudRate = 115200;
+  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.StopBits = UART_STOPBITS_1;
+  huart3.Init.Parity = UART_PARITY_NONE;
+  huart3.Init.Mode = UART_MODE_TX_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
 
-  if (HAL_UART_Init(&huart1) != HAL_OK)
+  if (HAL_UART_Init(&huart3) != HAL_OK)
+  {
     Error_Handler();
+  }
 }
-
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-   __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
 
   HAL_GPIO_WritePin(GPIOA, CY15B104Q_NWP_Pin|CY15B104Q_NHOLD_Pin|CY15B104Q_NCS_Pin, GPIO_PIN_SET);
 
-  GPIO_InitStruct.Pin = CY15B104Q_NWP_Pin|CY15B104Q_NHOLD_Pin;
+  GPIO_InitStruct.Pin = CY15B104Q_NWP_Pin|CY15B104Q_NHOLD_Pin|CY15B104Q_NCS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  GPIO_InitStruct.Pin = CY15B104Q_NCS_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
-  HAL_GPIO_Init(CY15B104Q_NCS_GPIO_Port, &GPIO_InitStruct);
 }
 
 static void run_all_tests()
@@ -133,7 +129,7 @@ static void run_all_tests()
 
 void unity_config_put_c(uint8_t c)
 {
-  (void)HAL_UART_Transmit(&huart1, &c, sizeof(c), DEBUG_TIMEOUT);
+  (void)HAL_UART_Transmit(&huart3, &c, sizeof(c), DEBUG_TIMEOUT);
 }
 
 int _kill(int a, int b)

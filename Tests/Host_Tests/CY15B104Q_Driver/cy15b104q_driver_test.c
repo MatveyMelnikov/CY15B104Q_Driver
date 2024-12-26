@@ -113,3 +113,34 @@ TEST(cy15b104q_driver_test, get_id_is_ok)
     sizeof(data_in)
   );
 }
+
+TEST(cy15b104q_driver_test, sleep_is_ok)
+{
+  uint8_t data_out = 0xb9U; // CY15B104Q datasheet, pg. 10
+
+  mock_cs_pin_expect_write(&is_reset);
+  mock_spi_expect_transmit(&data_out, sizeof(data_out));
+  mock_cs_pin_expect_write(&is_set);
+
+  cy15b104q_driver_status status = cy15b104q_driver_sleep();
+
+  TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
+}
+
+TEST(cy15b104q_driver_test, sleep_recover_is_ok)
+{
+  uint8_t data_out = 0x5U;
+  uint8_t data_in = 0xffU;
+  uint32_t recover_delay = 2;
+
+  mock_cs_pin_expect_write(&is_reset);
+  mock_delay_expect_delay(&recover_delay);
+  mock_spi_expect_transmit(&data_out, sizeof(data_out));
+  mock_spi_expect_receive(&data_in, sizeof(data_in));
+  mock_cs_pin_expect_write(&is_set);
+  mock_delay_expect_delay(&recover_delay);
+
+  cy15b104q_driver_status status = cy15b104q_driver_sleep_recover();
+
+  TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
+}

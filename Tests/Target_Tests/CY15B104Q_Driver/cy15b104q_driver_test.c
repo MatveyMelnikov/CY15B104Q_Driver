@@ -66,7 +66,8 @@ TEST_SETUP(cy15b104q_driver_test)
       .delay = HAL_Delay
     }
   );
-  cy15b104q_driver_power_up();
+  (void)cy15b104q_driver_power_up();
+  (void)cy15b104q_driver_sleep_recover();
 }
 
 TEST_TEAR_DOWN(cy15b104q_driver_test)
@@ -81,15 +82,27 @@ TEST(cy15b104q_driver_test, get_id_is_ok)
   cy15b104q_driver_status status = cy15b104q_driver_read_id(&result);
 
   TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
-  TEST_ASSERT_EQUAL(*(uint32_t*)result.manufacturer_id, 0x7f7f7f7f);
-  TEST_ASSERT_EQUAL(*(uint16_t*)result.product_id, 0x0826);
+  TEST_ASSERT_EQUAL(0x7f7f7f7f, *(uint32_t*)result.manufacturer_id);
+  TEST_ASSERT_EQUAL(0x0826, *(uint16_t*)result.product_id); // little-endian
 }
 
 TEST(cy15b104q_driver_test, check_link_is_ok)
 {
-  cy15b104q_driver_id result = { 0 };
-
   cy15b104q_driver_status status = cy15b104q_driver_check_link();
+
+  TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
+}
+
+TEST(cy15b104q_driver_test, sleep_is_ok)
+{
+  cy15b104q_driver_status status = cy15b104q_driver_sleep();
+
+  TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
+}
+
+TEST(cy15b104q_driver_test, sleep_recover_is_ok)
+{
+  cy15b104q_driver_status status = cy15b104q_driver_sleep_recover();
 
   TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
 }
