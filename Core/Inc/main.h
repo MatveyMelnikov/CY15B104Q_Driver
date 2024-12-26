@@ -69,10 +69,10 @@ void Error_Handler(void);
 #define CY15B104Q_MISO_GPIO_Port GPIOA
 #define CY15B104Q_MOSI_Pin GPIO_PIN_7
 #define CY15B104Q_MOSI_GPIO_Port GPIOA
-#define DEBUG_TX_Pin GPIO_PIN_9
-#define DEBUG_TX_GPIO_Port GPIOA
-#define DEBUG_RX_Pin GPIO_PIN_10
-#define DEBUG_RX_GPIO_Port GPIOA
+#define DEBUG_TX_Pin GPIO_PIN_10
+#define DEBUG_TX_GPIO_Port GPIOB
+#define DEBUG_RX_Pin GPIO_PIN_11
+#define DEBUG_RX_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
