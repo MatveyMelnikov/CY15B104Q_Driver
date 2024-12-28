@@ -67,11 +67,13 @@ TEST_SETUP(cy15b104q_driver_test)
     }
   );
   (void)cy15b104q_driver_power_up();
-  (void)cy15b104q_driver_sleep_recover();
 }
 
 TEST_TEAR_DOWN(cy15b104q_driver_test)
 {
+  (void)cy15b104q_driver_write_enable();
+  (void)cy15b104q_driver_write_status_register(false, false, false);
+  (void)cy15b104q_driver_write_disable();
   cy15b104q_driver_deinit_module();
 }
 
@@ -93,16 +95,29 @@ TEST(cy15b104q_driver_test, check_link_is_ok)
   TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
 }
 
-TEST(cy15b104q_driver_test, sleep_is_ok)
+TEST(cy15b104q_driver_test, read_status_register_is_ok)
 {
-  cy15b104q_driver_status status = cy15b104q_driver_sleep();
+  uint8_t result;
+
+  cy15b104q_driver_status status = cy15b104q_driver_read_status_register(
+    &result
+  );
 
   TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
+  TEST_ASSERT_EQUAL_INT8(0x40U, result);
 }
 
-TEST(cy15b104q_driver_test, sleep_recover_is_ok)
+TEST(cy15b104q_driver_test, write_status_register_is_ok)
 {
-  cy15b104q_driver_status status = cy15b104q_driver_sleep_recover();
+  cy15b104q_driver_status status = cy15b104q_driver_write_enable();
+
+  status |= cy15b104q_driver_write_status_register(true, true, true);
 
   TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
+
+  uint8_t result_status_register;
+  status |= cy15b104q_driver_read_status_register(&result_status_register);
+
+  TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
+  TEST_ASSERT_EQUAL_INT8(0xccU, result_status_register);
 }

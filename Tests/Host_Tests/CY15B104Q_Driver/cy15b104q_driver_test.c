@@ -79,9 +79,18 @@ TEST_TEAR_DOWN(cy15b104q_driver_test)
 
 TEST(cy15b104q_driver_test, power_up_is_ok)
 {
-  uint32_t delay = 1U;
+  uint32_t delay = 0xaU;
+  uint8_t data_out = 0x5U;
+  uint8_t data_in = 0x40U;
 
   mock_cs_pin_expect_write(&is_set);
+  mock_delay_expect_delay(&delay);
+
+  mock_cs_pin_expect_write(&is_reset);
+  mock_spi_expect_transmit(&data_out, sizeof(uint8_t));
+  mock_spi_expect_receive(&data_in, sizeof(uint8_t));
+  mock_cs_pin_expect_write(&is_set);
+
   mock_delay_expect_delay(&delay);
 
   cy15b104q_driver_status status = cy15b104q_driver_power_up();
@@ -100,7 +109,7 @@ TEST(cy15b104q_driver_test, get_id_is_ok)
   cy15b104q_driver_id result = { 0 };
 
   mock_cs_pin_expect_write(&is_reset);
-  mock_spi_expect_transmit(&data_out, sizeof(data_out));
+  mock_spi_expect_transmit(&data_out, sizeof(uint8_t));
   mock_spi_expect_receive(data_in, sizeof(data_in));
   mock_cs_pin_expect_write(&is_set);
 
@@ -114,33 +123,101 @@ TEST(cy15b104q_driver_test, get_id_is_ok)
   );
 }
 
-TEST(cy15b104q_driver_test, sleep_is_ok)
+TEST(cy15b104q_driver_test, read_status_register_is_ok)
 {
-  uint8_t data_out = 0xb9U; // CY15B104Q datasheet, pg. 10
+  uint8_t data_out = 0x5U;
+  uint8_t data_in = 0x40U;
 
   mock_cs_pin_expect_write(&is_reset);
-  mock_spi_expect_transmit(&data_out, sizeof(data_out));
+  mock_spi_expect_transmit(&data_out, sizeof(uint8_t));
+  mock_spi_expect_receive(&data_in, sizeof(uint8_t));
   mock_cs_pin_expect_write(&is_set);
 
-  cy15b104q_driver_status status = cy15b104q_driver_sleep();
+  uint8_t result;
+  cy15b104q_driver_status status = cy15b104q_driver_read_status_register(
+    &result
+  );
+
+  TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
+  TEST_ASSERT_EQUAL_INT8(0x40U, result);
+}
+
+TEST(cy15b104q_driver_test, enable_write_protect_is_ok)
+{
+  uint8_t data_out = CY15B104Q_CMD_WRITE_STATUS;
+  uint8_t data_payload = 0x80U;
+
+  mock_cs_pin_expect_write(&is_reset);
+  mock_spi_expect_transmit(&data_out, sizeof(uint8_t));
+  mock_spi_expect_transmit(&data_payload, sizeof(uint8_t));
+  mock_cs_pin_expect_write(&is_set);
+
+  uint8_t result;
+  cy15b104q_driver_status status = cy15b104q_driver_write_status_register(
+    true, false, false
+  );
 
   TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
 }
 
-TEST(cy15b104q_driver_test, sleep_recover_is_ok)
+TEST(cy15b104q_driver_test, enable_block_0_protect_is_ok)
 {
-  uint8_t data_out = 0x5U;
-  uint8_t data_in = 0xffU;
-  uint32_t recover_delay = 2;
+  uint8_t data_out = CY15B104Q_CMD_WRITE_STATUS;
+  uint8_t data_payload = 0x4U;
 
   mock_cs_pin_expect_write(&is_reset);
-  mock_delay_expect_delay(&recover_delay);
-  mock_spi_expect_transmit(&data_out, sizeof(data_out));
-  mock_spi_expect_receive(&data_in, sizeof(data_in));
+  mock_spi_expect_transmit(&data_out, sizeof(uint8_t));
+  mock_spi_expect_transmit(&data_payload, sizeof(uint8_t));
   mock_cs_pin_expect_write(&is_set);
-  mock_delay_expect_delay(&recover_delay);
 
-  cy15b104q_driver_status status = cy15b104q_driver_sleep_recover();
+  uint8_t result;
+  cy15b104q_driver_status status = cy15b104q_driver_write_status_register(
+    false, true, false
+  );
+
+  TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
+}
+
+TEST(cy15b104q_driver_test, enable_block_1_protect_is_ok)
+{
+  uint8_t data_out = CY15B104Q_CMD_WRITE_STATUS;
+  uint8_t data_payload = 0x8U;
+
+  mock_cs_pin_expect_write(&is_reset);
+  mock_spi_expect_transmit(&data_out, sizeof(uint8_t));
+  mock_spi_expect_transmit(&data_payload, sizeof(uint8_t));
+  mock_cs_pin_expect_write(&is_set);
+
+  uint8_t result;
+  cy15b104q_driver_status status = cy15b104q_driver_write_status_register(
+    false, false, true
+  );
+
+  TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
+}
+
+TEST(cy15b104q_driver_test, write_enable_is_ok)
+{
+  uint8_t data_out = CY15B104Q_CMD_WRITE_ENABLE;
+
+  mock_cs_pin_expect_write(&is_reset);
+  mock_spi_expect_transmit(&data_out, sizeof(uint8_t));
+  mock_cs_pin_expect_write(&is_set);
+
+  cy15b104q_driver_status status = cy15b104q_driver_write_enable();
+
+  TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
+}
+
+TEST(cy15b104q_driver_test, write_disable_is_ok)
+{
+  uint8_t data_out = CY15B104Q_CMD_WRITE_ENABLE;
+
+  mock_cs_pin_expect_write(&is_reset);
+  mock_spi_expect_transmit(&data_out, sizeof(uint8_t));
+  mock_cs_pin_expect_write(&is_set);
+
+  cy15b104q_driver_status status = cy15b104q_driver_write_enable();
 
   TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
 }
