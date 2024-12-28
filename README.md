@@ -5,4 +5,4 @@
 * ```make TESTS=Y FOR_TARGET=N -f MakefileMain.mk start``` - building test version for host device and running it.
 
 ### Hardware
-STM32F103C8T6 with UART_1 as debug output.
+STM32F103C8T6 with UART_3 as debug output.

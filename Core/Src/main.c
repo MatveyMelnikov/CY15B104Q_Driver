@@ -54,7 +54,17 @@ static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_USART3_UART_Init(void);
 /* USER CODE BEGIN PFP */
-
+static cy15b104q_driver_status cy15b104q_transmit(
+  const uint8_t *const data,
+  const uint16_t size,
+  const uint32_t timeout
+);
+static cy15b104q_driver_status cy15b104q_receive(
+  uint8_t *const data,
+  const uint16_t size,
+  const uint32_t timeout
+);
+static void cy15b104q_write_cs_pin(const bool is_set);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -169,7 +179,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -248,6 +258,43 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+static cy15b104q_driver_status cy15b104q_transmit(
+  const uint8_t *const data,
+  const uint16_t size,
+  const uint32_t timeout
+)
+{
+  return (cy15b104q_driver_status)HAL_SPI_Transmit(
+    &hspi1,
+    (uint8_t*)data,
+    size,
+    timeout
+  );
+}
+
+static cy15b104q_driver_status cy15b104q_receive(
+  uint8_t *const data,
+  const uint16_t size,
+  const uint32_t timeout
+)
+{
+  return (cy15b104q_driver_status)HAL_SPI_Receive(
+    &hspi1,
+    data,
+    size,
+    timeout
+  );
+}
+
+static void cy15b104q_write_cs_pin(const bool is_set)
+{
+  HAL_GPIO_WritePin(
+    CY15B104Q_NCS_GPIO_Port,
+    CY15B104Q_NCS_Pin,
+    is_set ? GPIO_PIN_SET : GPIO_PIN_RESET
+  );
+}
 
 /* USER CODE END 4 */
 

@@ -1,12 +1,26 @@
 #include "cy15b104q_driver.h"
 #include <stddef.h>
 
+// Defines -------------------------------------------------------------------
+
+#define BOOL_TO_BIT(boolean_value) \
+  (boolean_value) ? 1 : 0
+
+#define BOOL_TO_ABSOLUTE(boolean_value) \
+  ((boolean_value) ? ~0 : 0)
+
 // Static variables ----------------------------------------------------------
 
 static cy15b104q_driver_io_struct module_io;
 
 // Static prototypes ---------------------------------------------------------
 
+static cy15b104q_driver_status cy15b104q_driver_dummy_read(void);
+static uint8_t cy15b104q_driver_create_new_status_register(
+  bool write_protect_enabled,
+  bool block_protect_0,
+  bool block_protect_1
+);
 __attribute__((always_inline))
 static inline cy15b104q_driver_status cy15b104q_driver_io_transmit(
   const uint8_t *const data,
@@ -45,6 +59,8 @@ cy15b104q_driver_status cy15b104q_driver_power_up()
   // CY15B104Q datasheet, pg. 6
   cy15b104q_driver_status status = cy15b104q_driver_io_write_cs_pin(true);
   status |= cy15b104q_driver_io_delay(CY15B104Q_POWER_UP_DELAY);
+  status |= cy15b104q_driver_dummy_read();
+  status |= cy15b104q_driver_io_delay(CY15B104Q_POWER_UP_DELAY);
 
   return status;
 }
@@ -61,16 +77,17 @@ cy15b104q_driver_status cy15b104q_driver_check_link(void)
 }
 
 cy15b104q_driver_status cy15b104q_driver_read_id(
-  cy15b104q_driver_id *const result
+  cy15b104q_driver_id *const result_id
 )
 {
   // CY15B104Q datasheet, pg. 11
   uint8_t data_out = CY15B104Q_CMD_ID;
 
   cy15b104q_driver_status status = cy15b104q_driver_io_write_cs_pin(false);
-  status |= cy15b104q_driver_io_transmit(&data_out, sizeof(data_out));
+  // cy15b104q_driver_io_delay(10); // ?
+  status |= cy15b104q_driver_io_transmit(&data_out, sizeof(uint8_t));
   status |= cy15b104q_driver_io_receive(
-    (uint8_t*)result,
+    (uint8_t*)result_id,
     sizeof(cy15b104q_driver_id)
   );
   status |= cy15b104q_driver_io_write_cs_pin(true);
@@ -78,33 +95,92 @@ cy15b104q_driver_status cy15b104q_driver_read_id(
   return status;
 }
 
-cy15b104q_driver_status cy15b104q_driver_sleep()
+cy15b104q_driver_status cy15b104q_driver_read_status_register(
+  uint8_t *const result_status_register
+)
 {
-  // CY15B104Q datasheet, pg. 10
-  uint8_t data_out = CY15B104Q_CMD_SLEEP;
+  uint8_t cmd = CY15B104Q_CMD_READ_STATUS;
 
   cy15b104q_driver_status status = cy15b104q_driver_io_write_cs_pin(false);
-  status |= cy15b104q_driver_io_transmit(&data_out, sizeof(data_out));
+  status |= cy15b104q_driver_io_transmit(&cmd, sizeof(uint8_t));
+  status |= cy15b104q_driver_io_receive(
+    result_status_register,
+    sizeof(uint8_t)
+  );
   status |= cy15b104q_driver_io_write_cs_pin(true);
 
   return status;
 }
 
-cy15b104q_driver_status cy15b104q_driver_sleep_recover(void)
+cy15b104q_driver_status cy15b104q_driver_write_status_register(
+  bool write_protect_enabled,
+  bool block_protect_0,
+  bool block_protect_1
+)
 {
-  // CY15B104Q datasheet, pg. 10
-  uint8_t cmd = CY15B104Q_CMD_STATUS; // dummy read
-  uint8_t dummy_data;
+  uint8_t cmd = CY15B104Q_CMD_WRITE_STATUS;
+  uint8_t new_status_register = cy15b104q_driver_create_new_status_register(
+    write_protect_enabled,
+    block_protect_0,
+    block_protect_1
+  );
 
-  // exit sleep mode
   cy15b104q_driver_status status = cy15b104q_driver_io_write_cs_pin(false);
-  status |= cy15b104q_driver_io_delay(CY15B104Q_SLEEP_RECOVER_DELAY);
-  status |= cy15b104q_driver_io_transmit(&cmd, sizeof(cmd));
-  status |= cy15b104q_driver_io_receive(&dummy_data, sizeof(dummy_data));
+  status |= cy15b104q_driver_io_transmit(&cmd, sizeof(uint8_t));
+  status |= cy15b104q_driver_io_transmit(
+    &new_status_register,
+    sizeof(uint8_t)
+  );
   status |= cy15b104q_driver_io_write_cs_pin(true);
-  status |= cy15b104q_driver_io_delay(CY15B104Q_SLEEP_RECOVER_DELAY);
 
   return status;
+}
+
+cy15b104q_driver_status cy15b104q_driver_write_enable()
+{
+  uint8_t cmd = CY15B104Q_CMD_WRITE_ENABLE;
+
+  cy15b104q_driver_status status = cy15b104q_driver_io_write_cs_pin(false);
+  status |= cy15b104q_driver_io_transmit(&cmd, sizeof(uint8_t));
+  status |= cy15b104q_driver_io_write_cs_pin(true);
+
+  return status;
+}
+
+cy15b104q_driver_status cy15b104q_driver_write_disable()
+{
+  uint8_t cmd = CY15B104Q_CMD_WRITE_DISABLE;
+
+  cy15b104q_driver_status status = cy15b104q_driver_io_write_cs_pin(false);
+  status |= cy15b104q_driver_io_transmit(&cmd, sizeof(uint8_t));
+  status |= cy15b104q_driver_io_write_cs_pin(true);
+
+  return status;
+}
+
+static cy15b104q_driver_status cy15b104q_driver_dummy_read()
+{
+  uint8_t dummy_data;
+  cy15b104q_driver_status status = cy15b104q_driver_read_status_register(
+    &dummy_data
+  );
+
+  return status;
+}
+
+static uint8_t cy15b104q_driver_create_new_status_register(
+  bool write_protect_enabled,
+  bool block_protect_0,
+  bool block_protect_1
+)
+{
+  uint8_t is_write_protect_enabled = BOOL_TO_ABSOLUTE(write_protect_enabled);
+  uint8_t is_block_0_protect = BOOL_TO_ABSOLUTE(block_protect_1);
+  uint8_t is_block_1_protect = BOOL_TO_ABSOLUTE(block_protect_0);
+
+  return (is_write_protect_enabled & CY15B104Q_STATUS_REG_WPEN) |
+    (is_block_0_protect & CY15B104Q_STATUS_REG_BP1) |
+    (is_block_1_protect & CY15B104Q_STATUS_REG_BP0);
 }
 
 __attribute__((always_inline))
