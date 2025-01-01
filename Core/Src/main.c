@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "cy15b104q_driver.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,6 +42,8 @@
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi1;
 
+UART_HandleTypeDef huart3;
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -50,8 +52,19 @@ SPI_HandleTypeDef hspi1;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_USART3_UART_Init(void);
 /* USER CODE BEGIN PFP */
-
+static cy15b104q_driver_status cy15b104q_transmit(
+  const uint8_t *const data,
+  const uint16_t size,
+  const uint32_t timeout
+);
+static cy15b104q_driver_status cy15b104q_receive(
+  uint8_t *const data,
+  const uint16_t size,
+  const uint32_t timeout
+);
+static void cy15b104q_write_cs_pin(const bool is_set);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -88,7 +101,22 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_SPI1_Init();
+  MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
+
+  cy15b104q_driver_init_module(
+    (cy15b104q_driver_io_struct) {
+      .transmit = cy15b104q_transmit,
+      .receive = cy15b104q_receive,
+      .write_cs_pin = cy15b104q_write_cs_pin,
+      .delay = HAL_Delay
+    }
+  );
+
+  cy15b104q_driver_status status = cy15b104q_driver_power_up();
+  status |= cy15b104q_driver_check_link();
+  if (status)
+    Error_Handler();
 
   /* USER CODE END 2 */
 
@@ -181,24 +209,106 @@ static void MX_SPI1_Init(void)
 }
 
 /**
+  * @brief USART3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART3_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART3_Init 0 */
+
+  /* USER CODE END USART3_Init 0 */
+
+  /* USER CODE BEGIN USART3_Init 1 */
+
+  /* USER CODE END USART3_Init 1 */
+  huart3.Instance = USART3;
+  huart3.Init.BaudRate = 115200;
+  huart3.Init.WordLength = UART_WORDLENGTH_8B;
+  huart3.Init.StopBits = UART_STOPBITS_1;
+  huart3.Init.Parity = UART_PARITY_NONE;
+  huart3.Init.Mode = UART_MODE_TX_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART3_Init 2 */
+
+  /* USER CODE END USART3_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 /* USER CODE BEGIN MX_GPIO_Init_1 */
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, CY15B104Q_NWP_Pin|CY15B104Q_NHOLD_Pin|CY15B104Q_NCS_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pins : CY15B104Q_NWP_Pin CY15B104Q_NHOLD_Pin CY15B104Q_NCS_Pin */
+  GPIO_InitStruct.Pin = CY15B104Q_NWP_Pin|CY15B104Q_NHOLD_Pin|CY15B104Q_NCS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+
+static cy15b104q_driver_status cy15b104q_transmit(
+  const uint8_t *const data,
+  const uint16_t size,
+  const uint32_t timeout
+)
+{
+  return (cy15b104q_driver_status)HAL_SPI_Transmit(
+    &hspi1,
+    (uint8_t*)data,
+    size,
+    timeout
+  );
+}
+
+static cy15b104q_driver_status cy15b104q_receive(
+  uint8_t *const data,
+  const uint16_t size,
+  const uint32_t timeout
+)
+{
+  return (cy15b104q_driver_status)HAL_SPI_Receive(
+    &hspi1,
+    data,
+    size,
+    timeout
+  );
+}
+
+static void cy15b104q_write_cs_pin(const bool is_set)
+{
+  HAL_GPIO_WritePin(
+    CY15B104Q_NCS_GPIO_Port,
+    CY15B104Q_NCS_Pin,
+    is_set ? GPIO_PIN_SET : GPIO_PIN_RESET
+  );
+}
 
 /* USER CODE END 4 */
 
