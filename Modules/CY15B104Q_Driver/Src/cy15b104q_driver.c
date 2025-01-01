@@ -21,6 +21,19 @@ static uint8_t cy15b104q_driver_create_new_status_register(
   bool block_protect_0,
   bool block_protect_1
 );
+static inline bool cy15b104q_is_address_and_size_not_correct(
+  cy15b104q_driver_address address,
+  const uint16_t data_size
+);
+__attribute__((always_inline))
+static inline bool cy15b104q_is_address_out_of_bounds(
+  cy15b104q_driver_address address,
+  const uint16_t data_size
+);
+__attribute__((always_inline))
+static inline bool cy15b104q_is_size_out_of_bounds(
+  const uint16_t data_size
+);
 __attribute__((always_inline))
 static inline cy15b104q_driver_status cy15b104q_driver_io_transmit(
   const uint8_t *const data,
@@ -70,7 +83,7 @@ cy15b104q_driver_status cy15b104q_driver_check_link(void)
   cy15b104q_driver_id id;
 
   cy15b104q_driver_status status = cy15b104q_driver_read_id(&id);
-  if (*(uint16_t*)id.product_id == CY15B104Q_PRODUCT_ID)
+  if (status || *(uint16_t*)id.product_id == CY15B104Q_PRODUCT_ID)
     return status;
   
   return status | CY15B104Q_STATUS_ERROR;
@@ -84,7 +97,6 @@ cy15b104q_driver_status cy15b104q_driver_read_id(
   uint8_t data_out = CY15B104Q_CMD_ID;
 
   cy15b104q_driver_status status = cy15b104q_driver_io_write_cs_pin(false);
-  // cy15b104q_driver_io_delay(10); // ?
   status |= cy15b104q_driver_io_transmit(&data_out, sizeof(uint8_t));
   status |= cy15b104q_driver_io_receive(
     (uint8_t*)result_id,
@@ -158,6 +170,52 @@ cy15b104q_driver_status cy15b104q_driver_write_disable()
   return status;
 }
 
+cy15b104q_driver_status cy15b104q_driver_write_memory_data(
+  const cy15b104q_driver_address addr,
+  const uint8_t *const data,
+  const uint16_t size
+)
+{
+  uint8_t cmd = CY15B104Q_CMD_WRITE_MEMORY_DATA;
+
+  if (cy15b104q_is_address_and_size_not_correct(addr, size))
+    return CY15B104Q_STATUS_ERROR;
+
+  cy15b104q_driver_status status = cy15b104q_driver_io_write_cs_pin(false);
+  status |= cy15b104q_driver_io_transmit(&cmd, sizeof(uint8_t));
+  status |= cy15b104q_driver_io_transmit(
+    addr.used_parts,
+    sizeof(addr.used_parts)
+  );
+  status |= cy15b104q_driver_io_transmit(data, size);
+  status |= cy15b104q_driver_io_write_cs_pin(true);
+
+  return status; 
+}
+
+cy15b104q_driver_status cy15b104q_driver_read_memory_data(
+  const cy15b104q_driver_address addr,
+  uint8_t *const data,
+  const uint16_t size
+)
+{
+  uint8_t cmd = CY15B104Q_CMD_READ_MEMORY_DATA;
+
+  if (cy15b104q_is_address_and_size_not_correct(addr, size))
+    return CY15B104Q_STATUS_ERROR;
+
+  cy15b104q_driver_status status = cy15b104q_driver_io_write_cs_pin(false);
+  status |= cy15b104q_driver_io_transmit(&cmd, sizeof(uint8_t));
+  status |= cy15b104q_driver_io_transmit(
+    addr.used_parts,
+    sizeof(addr.used_parts)
+  );
+  status |= cy15b104q_driver_io_receive(data, size);
+  status |= cy15b104q_driver_io_write_cs_pin(true);
+
+  return status; 
+}
+
 static cy15b104q_driver_status cy15b104q_driver_dummy_read()
 {
   uint8_t dummy_data;
@@ -181,6 +239,38 @@ static uint8_t cy15b104q_driver_create_new_status_register(
   return (is_write_protect_enabled & CY15B104Q_STATUS_REG_WPEN) |
     (is_block_0_protect & CY15B104Q_STATUS_REG_BP1) |
     (is_block_1_protect & CY15B104Q_STATUS_REG_BP0);
+}
+
+static inline bool cy15b104q_is_address_and_size_not_correct(
+  cy15b104q_driver_address address,
+  const uint16_t data_size
+)
+{
+  return cy15b104q_is_address_out_of_bounds(address, data_size) |
+    cy15b104q_is_size_out_of_bounds(data_size);
+}
+
+__attribute__((always_inline))
+static inline bool cy15b104q_is_address_out_of_bounds(
+  cy15b104q_driver_address address,
+  const uint16_t data_size
+)
+{
+  if (address.full + data_size >= CY15B104Q_SIZE)
+    return true;
+
+  return false;
+}
+
+__attribute__((always_inline))
+static inline bool cy15b104q_is_size_out_of_bounds(
+  const uint16_t data_size
+)
+{
+  if (data_size >= CY15B104Q_SIZE)
+    return true;
+
+  return false;
 }
 
 __attribute__((always_inline))

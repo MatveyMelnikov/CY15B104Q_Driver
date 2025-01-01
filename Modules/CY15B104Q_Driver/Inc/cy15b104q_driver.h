@@ -22,5 +22,15 @@ cy15b104q_driver_status cy15b104q_driver_write_status_register(
 );
 cy15b104q_driver_status cy15b104q_driver_write_enable(void);
 cy15b104q_driver_status cy15b104q_driver_write_disable(void);
+cy15b104q_driver_status cy15b104q_driver_write_memory_data(
+  const cy15b104q_driver_address addr,
+  const uint8_t *const data,
+  const uint16_t size
+);
+cy15b104q_driver_status cy15b104q_driver_read_memory_data(
+  const cy15b104q_driver_address addr,
+  uint8_t *const data,
+  const uint16_t size
+);
 
 #endif

@@ -9,6 +9,7 @@ enum {
   CY15B104Q_IO_TIMEOUT = 0xaU,
   CY15B104Q_SLEEP_RECOVER_DELAY = 2U,
   CY15B104Q_PRODUCT_ID = 0x826U, // MSB, little-endian
+  CY15B104Q_SIZE = 0x80000U
 };
 
 typedef enum {
@@ -18,6 +19,8 @@ typedef enum {
   CY15B104Q_CMD_WRITE_STATUS = 0x1U,
   CY15B104Q_CMD_WRITE_ENABLE = 0x6U,
   CY15B104Q_CMD_WRITE_DISABLE = 0x4U,
+  CY15B104Q_CMD_WRITE_MEMORY_DATA = 0x2U,
+  CY15B104Q_CMD_READ_MEMORY_DATA = 0x3U,
 } cy15b104q_driver_command;
 
 typedef enum {
@@ -59,5 +62,10 @@ typedef struct {
   uint8_t manufacturer_id[7U];
   uint8_t product_id[2U];
 } cy15b104q_driver_id;
+
+typedef union {
+  uint8_t used_parts[3];
+  uint32_t full;
+} cy15b104q_driver_address;
 
 #endif
