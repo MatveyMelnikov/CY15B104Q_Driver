@@ -21,17 +21,9 @@ static uint8_t cy15b104q_driver_create_new_status_register(
   bool block_protect_0,
   bool block_protect_1
 );
-static inline bool cy15b104q_is_address_and_size_not_correct(
-  cy15b104q_driver_address address,
-  const uint16_t data_size
-);
 __attribute__((always_inline))
 static inline bool cy15b104q_is_address_out_of_bounds(
   cy15b104q_driver_address address,
-  const uint16_t data_size
-);
-__attribute__((always_inline))
-static inline bool cy15b104q_is_size_out_of_bounds(
   const uint16_t data_size
 );
 __attribute__((always_inline))
@@ -74,6 +66,16 @@ cy15b104q_driver_status cy15b104q_driver_power_up()
   status |= cy15b104q_driver_io_delay(CY15B104Q_POWER_UP_DELAY);
   status |= cy15b104q_driver_dummy_read();
   status |= cy15b104q_driver_io_delay(CY15B104Q_POWER_UP_DELAY);
+
+  return status;
+}
+
+static cy15b104q_driver_status cy15b104q_driver_dummy_read()
+{
+  uint8_t dummy_data;
+  cy15b104q_driver_status status = cy15b104q_driver_read_status_register(
+    &dummy_data
+  );
 
   return status;
 }
@@ -148,6 +150,21 @@ cy15b104q_driver_status cy15b104q_driver_write_status_register(
   return status;
 }
 
+static uint8_t cy15b104q_driver_create_new_status_register(
+  bool write_protect_enabled,
+  bool block_protect_0,
+  bool block_protect_1
+)
+{
+  uint8_t is_write_protect_enabled = BOOL_TO_ABSOLUTE(write_protect_enabled);
+  uint8_t is_block_0_protect = BOOL_TO_ABSOLUTE(block_protect_1);
+  uint8_t is_block_1_protect = BOOL_TO_ABSOLUTE(block_protect_0);
+
+  return (is_write_protect_enabled & CY15B104Q_STATUS_REG_WPEN) |
+    (is_block_0_protect & CY15B104Q_STATUS_REG_BP1) |
+    (is_block_1_protect & CY15B104Q_STATUS_REG_BP0);
+}
+
 cy15b104q_driver_status cy15b104q_driver_write_enable()
 {
   uint8_t cmd = CY15B104Q_CMD_WRITE_ENABLE;
@@ -178,7 +195,7 @@ cy15b104q_driver_status cy15b104q_driver_write_memory_data(
 {
   uint8_t cmd = CY15B104Q_CMD_WRITE_MEMORY_DATA;
 
-  if (cy15b104q_is_address_and_size_not_correct(addr, size))
+  if (cy15b104q_is_address_out_of_bounds(addr, size))
     return CY15B104Q_STATUS_ERROR;
 
   cy15b104q_driver_status status = cy15b104q_driver_io_write_cs_pin(false);
@@ -201,7 +218,7 @@ cy15b104q_driver_status cy15b104q_driver_read_memory_data(
 {
   uint8_t cmd = CY15B104Q_CMD_READ_MEMORY_DATA;
 
-  if (cy15b104q_is_address_and_size_not_correct(addr, size))
+  if (cy15b104q_is_address_out_of_bounds(addr, size))
     return CY15B104Q_STATUS_ERROR;
 
   cy15b104q_driver_status status = cy15b104q_driver_io_write_cs_pin(false);
@@ -216,40 +233,6 @@ cy15b104q_driver_status cy15b104q_driver_read_memory_data(
   return status; 
 }
 
-static cy15b104q_driver_status cy15b104q_driver_dummy_read()
-{
-  uint8_t dummy_data;
-  cy15b104q_driver_status status = cy15b104q_driver_read_status_register(
-    &dummy_data
-  );
-
-  return status;
-}
-
-static uint8_t cy15b104q_driver_create_new_status_register(
-  bool write_protect_enabled,
-  bool block_protect_0,
-  bool block_protect_1
-)
-{
-  uint8_t is_write_protect_enabled = BOOL_TO_ABSOLUTE(write_protect_enabled);
-  uint8_t is_block_0_protect = BOOL_TO_ABSOLUTE(block_protect_1);
-  uint8_t is_block_1_protect = BOOL_TO_ABSOLUTE(block_protect_0);
-
-  return (is_write_protect_enabled & CY15B104Q_STATUS_REG_WPEN) |
-    (is_block_0_protect & CY15B104Q_STATUS_REG_BP1) |
-    (is_block_1_protect & CY15B104Q_STATUS_REG_BP0);
-}
-
-static inline bool cy15b104q_is_address_and_size_not_correct(
-  cy15b104q_driver_address address,
-  const uint16_t data_size
-)
-{
-  return cy15b104q_is_address_out_of_bounds(address, data_size) |
-    cy15b104q_is_size_out_of_bounds(data_size);
-}
-
 __attribute__((always_inline))
 static inline bool cy15b104q_is_address_out_of_bounds(
   cy15b104q_driver_address address,
@@ -257,17 +240,6 @@ static inline bool cy15b104q_is_address_out_of_bounds(
 )
 {
   if (address.full + data_size >= CY15B104Q_SIZE)
-    return true;
-
-  return false;
-}
-
-__attribute__((always_inline))
-static inline bool cy15b104q_is_size_out_of_bounds(
-  const uint16_t data_size
-)
-{
-  if (data_size >= CY15B104Q_SIZE)
     return true;
 
   return false;

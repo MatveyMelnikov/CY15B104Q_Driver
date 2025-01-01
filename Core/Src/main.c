@@ -104,6 +104,20 @@ int main(void)
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  cy15b104q_driver_init_module(
+    (cy15b104q_driver_io_struct) {
+      .transmit = cy15b104q_transmit,
+      .receive = cy15b104q_receive,
+      .write_cs_pin = cy15b104q_write_cs_pin,
+      .delay = HAL_Delay
+    }
+  );
+
+  cy15b104q_driver_status status = cy15b104q_driver_power_up();
+  status |= cy15b104q_driver_check_link();
+  if (status)
+    Error_Handler();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
