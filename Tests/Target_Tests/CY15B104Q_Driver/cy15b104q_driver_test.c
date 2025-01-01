@@ -11,6 +11,8 @@ extern SPI_HandleTypeDef hspi1;
 
 // Defines -------------------------------------------------------------------
 
+#define TEST_PATTERN 0xA5B5U
+
 // Static variables ----------------------------------------------------------
 
 // Static functions ----------------------------------------------------------
@@ -120,4 +122,90 @@ TEST(cy15b104q_driver_test, write_status_register_is_ok)
 
   TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
   TEST_ASSERT_EQUAL_INT8(0xccU, result_status_register);
+}
+
+TEST(cy15b104q_driver_test, write_and_read_memory_data_is_ok)
+{
+  cy15b104q_driver_address addr = {
+    .full = 0x0U
+  };
+  uint8_t data_out[] = { 0xaa, 0xbb, 0xcc };
+  uint8_t data_in[3] = { 0 };
+
+  cy15b104q_driver_status status = cy15b104q_driver_write_enable();
+  status |= cy15b104q_driver_write_memory_data(
+    addr,
+    data_out,
+    sizeof(data_out)
+  );
+
+  TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
+
+  status |= cy15b104q_driver_read_memory_data(addr, data_in, sizeof(data_in));
+
+  TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
+  TEST_ASSERT_EQUAL_INT8_ARRAY(
+    data_out,
+    data_in,
+    sizeof(data_in)
+  );
+}
+
+TEST(cy15b104q_driver_test, write_and_read_large_memory_data_is_ok)
+{
+  cy15b104q_driver_address addr = {
+    .full = 0x0U
+  };
+  uint8_t data_out[1024U] = { 0 };
+  uint8_t data_in[1024U] = { 0 };
+  *(uint16_t*)&data_out[0] = TEST_PATTERN;
+  *(uint16_t*)&data_out[256] = TEST_PATTERN;
+  *(uint16_t*)&data_out[512] = TEST_PATTERN;
+  *(uint16_t*)&data_out[768] = TEST_PATTERN;
+  *(uint16_t*)&data_out[1022] = TEST_PATTERN;
+
+  cy15b104q_driver_status status = cy15b104q_driver_write_enable();
+  status |= cy15b104q_driver_write_memory_data(
+    addr,
+    data_out,
+    sizeof(data_out)
+  );
+
+  TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
+
+  status |= cy15b104q_driver_read_memory_data(addr, data_in, sizeof(data_in));
+
+  TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
+  TEST_ASSERT_EQUAL_INT8_ARRAY(
+    data_out,
+    data_in,
+    sizeof(data_in)
+  );
+}
+
+TEST(cy15b104q_driver_test, write_and_read_last_memory_data_is_ok)
+{
+  cy15b104q_driver_address addr = {
+    .full = CY15B104Q_SIZE - 4
+  };
+  uint8_t data_out[] = { 0xaa, 0xbb, 0xcc };
+  uint8_t data_in[3] = { 0 };
+
+  cy15b104q_driver_status status = cy15b104q_driver_write_enable();
+  status |= cy15b104q_driver_write_memory_data(
+    addr,
+    data_out,
+    sizeof(data_out)
+  );
+
+  TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
+
+  status |= cy15b104q_driver_read_memory_data(addr, data_in, sizeof(data_in));
+
+  TEST_ASSERT_EQUAL(CY15B104Q_STATUS_OK, status);
+  TEST_ASSERT_EQUAL_INT8_ARRAY(
+    data_out,
+    data_in,
+    sizeof(data_in)
+  );
 }
