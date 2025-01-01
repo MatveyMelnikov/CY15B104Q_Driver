@@ -6,3 +6,4 @@
 
 ### Hardware
 STM32F103C8T6 with UART_3 as debug output.
+![cy15b104q](https://github.com/user-attachments/assets/90f440b7-8868-4c9a-9e08-2d685f56572a)
