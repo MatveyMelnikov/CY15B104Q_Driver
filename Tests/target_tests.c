@@ -42,7 +42,10 @@ int main(void)
   MX_SPI1_Init();
   MX_USART3_UART_Init();
 
-  return UnityMain(0, NULL, run_all_tests);
+  int res = UnityMain(0, NULL, run_all_tests);
+
+  if (res)
+    __asm("nop");
 }
 
 void SystemClock_Config(void)
