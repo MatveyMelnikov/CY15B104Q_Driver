@@ -22,6 +22,10 @@ static uint8_t cy15b104q_driver_create_new_status_register(
   bool block_protect_1
 );
 __attribute__((always_inline))
+static inline cy15b104q_driver_address cy15b104q_reverse_address(
+  cy15b104q_driver_address address
+);
+__attribute__((always_inline))
 static inline bool cy15b104q_is_address_out_of_bounds(
   cy15b104q_driver_address address,
   const uint16_t data_size
@@ -198,11 +202,13 @@ cy15b104q_driver_status cy15b104q_driver_write_memory_data(
   if (cy15b104q_is_address_out_of_bounds(addr, size))
     return CY15B104Q_STATUS_ERROR;
 
+  cy15b104q_driver_address reversed_addr = cy15b104q_reverse_address(addr);
+
   cy15b104q_driver_status status = cy15b104q_driver_io_write_cs_pin(false);
   status |= cy15b104q_driver_io_transmit(&cmd, sizeof(uint8_t));
   status |= cy15b104q_driver_io_transmit(
-    addr.used_parts,
-    sizeof(addr.used_parts)
+    reversed_addr.used_parts,
+    sizeof(reversed_addr.used_parts)
   );
   status |= cy15b104q_driver_io_transmit(data, size);
   status |= cy15b104q_driver_io_write_cs_pin(true);
@@ -221,16 +227,30 @@ cy15b104q_driver_status cy15b104q_driver_read_memory_data(
   if (cy15b104q_is_address_out_of_bounds(addr, size))
     return CY15B104Q_STATUS_ERROR;
 
+  cy15b104q_driver_address reversed_addr = cy15b104q_reverse_address(addr);
+
   cy15b104q_driver_status status = cy15b104q_driver_io_write_cs_pin(false);
   status |= cy15b104q_driver_io_transmit(&cmd, sizeof(uint8_t));
   status |= cy15b104q_driver_io_transmit(
-    addr.used_parts,
-    sizeof(addr.used_parts)
+    reversed_addr.used_parts,
+    sizeof(reversed_addr.used_parts)
   );
   status |= cy15b104q_driver_io_receive(data, size);
   status |= cy15b104q_driver_io_write_cs_pin(true);
 
   return status; 
+}
+
+__attribute__((always_inline))
+static inline cy15b104q_driver_address cy15b104q_reverse_address(
+  cy15b104q_driver_address address
+)
+{
+  return (cy15b104q_driver_address) {
+    .used_parts = {
+      address.used_parts[2], address.used_parts[1], address.used_parts[0]
+    }
+  };
 }
 
 __attribute__((always_inline))

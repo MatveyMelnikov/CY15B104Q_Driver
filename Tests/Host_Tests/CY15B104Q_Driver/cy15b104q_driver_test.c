@@ -234,11 +234,12 @@ TEST(cy15b104q_driver_test, write_memory_data_is_ok)
 {
   uint8_t cmd_out = CY15B104Q_CMD_WRITE_MEMORY_DATA;
   uint32_t address_out = 0x10;
+  uint32_t expected_address_out = 0x10 << 16;
   uint8_t data[] = { 0xaa, 0xbb, 0xcc };
 
   mock_cs_pin_expect_write(&is_reset);
   mock_spi_expect_transmit(&cmd_out, sizeof(uint8_t));
-  mock_spi_expect_transmit((uint8_t*)&address_out, 3U);
+  mock_spi_expect_transmit((uint8_t*)&expected_address_out, 3U);
   mock_spi_expect_transmit(data, sizeof(data));
   mock_cs_pin_expect_write(&is_set);
 
@@ -272,12 +273,13 @@ TEST(cy15b104q_driver_test, read_memory_data_is_ok)
 {
   uint8_t cmd_out = CY15B104Q_CMD_READ_MEMORY_DATA;
   uint32_t address_out = 0x10;
+  uint32_t expected_address_out = 0x10 << 16;
   uint8_t expected_data[] = { 0xaa, 0xbb, 0xcc };
   uint8_t actual_data[3] = { 0 };
 
   mock_cs_pin_expect_write(&is_reset);
   mock_spi_expect_transmit(&cmd_out, sizeof(uint8_t));
-  mock_spi_expect_transmit((uint8_t*)&address_out, 3U);
+  mock_spi_expect_transmit((uint8_t*)&expected_address_out, 3U);
   mock_spi_expect_receive(expected_data, sizeof(expected_data));
   mock_cs_pin_expect_write(&is_set);
 
